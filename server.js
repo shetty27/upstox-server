@@ -1,8 +1,7 @@
 const express = require('express');
 const axios = require('axios');
-const dotenv = require('dotenv');
+require('dotenv').config();
 
-dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -12,61 +11,40 @@ const API_SECRET = process.env.API_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
 let accessToken = null;
 
-// Middleware to parse JSON
-app.use(express.json());
-
-// 🔹 Step 1: Redirect User to Upstox for Authentication
-app.get('/auth/login', (req, res) => {
-    const authUrl = `https://api.upstox.com/v2/login/authorize?client_id=${API_KEY}&redirect_uri=${REDIRECT_URI}&response_type=code`;
-    res.redirect(authUrl);
+// ✅ Step 1: Root Route (Check if Server is Running)
+app.get('/', (req, res) => {
+    res.send("✅ Server is Running! 🚀");
 });
 
-// 🔹 Step 2: Handle Upstox Redirect & Exchange Auth Code for Access Token
+// ✅ Step 2: Upstox Authorization Callback Route
 app.get('/auth/callback', async (req, res) => {
     const authCode = req.query.code;
     if (!authCode) {
-        return res.status(400).json({ error: "Auth code missing!" });
+        return res.status(400).json({ error: "Authorization Code Not Found" });
     }
 
     try {
+        // 🔹 Auth Code से Access Token लेना
         const response = await axios.post('https://api.upstox.com/v2/login/authorization/token', {
-            code: authCode,
             client_id: API_KEY,
             client_secret: API_SECRET,
             redirect_uri: REDIRECT_URI,
-            grant_type: "authorization_code"
-        }, {
-            headers: { 'Content-Type': 'application/json' }
+            grant_type: "authorization_code",
+            code: authCode
         });
 
         accessToken = response.data.access_token;
         console.log("✅ Access Token:", accessToken);
 
-        res.json({ message: "Authorization successful!", access_token: accessToken });
+        res.json({ message: "Login Successful!", accessToken });
+
     } catch (error) {
-        console.error("❌ Token Exchange Failed:", error.response?.data || error.message);
-        res.status(500).json({ error: "Token Exchange Failed" });
+        console.error("❌ Auth Token Error:", error.response?.data || error.message);
+        res.status(500).json({ error: "Failed to get Access Token" });
     }
 });
 
-// 🔹 Step 3: Fetch Market Data from Upstox
-app.get('/market-data', async (req, res) => {
-    if (!accessToken) {
-        return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    try {
-        const response = await axios.get("https://api.upstox.com/v2/market-quote/NSE_EQ|INFY", {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        res.json(response.data);
-    } catch (error) {
-        console.error("❌ Market Data Fetch Error:", error.response?.data || error.message);
-        res.status(500).json({ error: "Failed to fetch market data" });
-    }
-});
-
-// 🔹 Step 4: Start Server
+// ✅ Step 3: Server को Start करना (Continuous Process)
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
