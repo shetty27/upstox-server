@@ -13,7 +13,7 @@ let accessToken = null;
 // Auto Login Function
 async function loginToUpstox() {
     try {
-        const response = await axios.post("https://api.upstox.com/login/authorization/token", {
+        const response = await axios.get('https://api.upstox.com/v2/login/authorization/token',{
             client_id: API_KEY,
             client_secret: API_SECRET,
             redirect_uri: REDIRECT_URI,
