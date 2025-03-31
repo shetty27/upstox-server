@@ -5,6 +5,21 @@ const axios = require('axios');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ✅ Default Route (Root Route)
+app.get('/', (req, res) => {
+    res.json({ message: "🚀 Upstox Server is Running..." });
+});
+
+// ✅ Check if Server is Running
+app.get('/ping', (req, res) => {
+    res.json({ message: "🔄 Server is Alive..." });
+});
+
+// Start Server
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
+
 // Upstox API Credentials
 const API_KEY = process.env.API_KEY;
 const API_SECRET = process.env.API_SECRET;
