@@ -79,7 +79,7 @@ def get_ltp(instrument_key: str):
     }
 
     url = "https://api.upstox.com/v2/market-quote/ltp"
-    payload = {"instrument_key": [instrument_key]}
+    payload = {"instrument_keys": [instrument_key]}
 
     response = requests.post(url, headers=headers, json=payload)
 
@@ -101,7 +101,7 @@ def get_quotes(instrument_key: str):
     }
 
     url = "https://api.upstox.com/v2/market-quote/quotes"
-    payload = {"instrument_key": [instrument_key]}
+    payload = {"instrument_keys": [instrument_key]}
 
     response = requests.post(url, headers=headers, json=payload)
 
