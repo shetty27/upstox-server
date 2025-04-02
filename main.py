@@ -26,6 +26,7 @@ def fetch_stock_data(symbol):
 
 # 🔹 API Routes
 @app.get("/")
+@app.head("/")
 def home():
     return {"message": "Stock Prediction API is Running with Upstox!"}
 
