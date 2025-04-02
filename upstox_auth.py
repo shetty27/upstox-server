@@ -8,11 +8,9 @@ from firebase_admin import credentials, firestore
 firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")
 
 if firebase_credentials:
-    # 🔹 JSON String को Python Dictionary में Convert करो
     cred_dict = json.loads(firebase_credentials)
     cred = credentials.Certificate(cred_dict)
 
-    # 🔹 Firebase Initialize करो (अगर पहले से नहीं हुआ)
     if not firebase_admin._apps:
         firebase_admin.initialize_app(cred)
 else:
@@ -21,13 +19,12 @@ else:
 # 🔹 Firestore Database Access
 db = firestore.client()
 
-# 🔹 Upstox API Credentials
-UPSTOX_CLIENT_ID = os.getenv("UPSTOX_CLIENT_ID")
-UPSTOX_CLIENT_SECRET = os.getenv("UPSTOX_CLIENT_SECRET")
+# 🔹 Upstox API Credentials (Render के Env Variables से)
+UPSTOX_API_KEY = os.getenv("UPSTOX_API_KEY")
+UPSTOX_API_SECRET = os.getenv("UPSTOX_API_SECRET")
 UPSTOX_REDIRECT_URI = os.getenv("UPSTOX_REDIRECT_URI")
-UPSTOX_REFRESH_TOKEN = os.getenv("UPSTOX_REFRESH_TOKEN")  # 🔹 पहली बार तुम्हें इसे Firebase में Save करना होगा
 
-# 🔹 Firebase से Access Token लाने का Function
+# 🔹 Firebase से Tokens Fetch करने का Function
 def get_saved_tokens():
     doc_ref = db.collection("upstox_tokens").document("auth")
     doc = doc_ref.get()
@@ -37,18 +34,19 @@ def get_saved_tokens():
 
 # 🔹 Access Token Refresh करने का Function
 def refresh_access_token():
-    global UPSTOX_REFRESH_TOKEN
-    
-    if not UPSTOX_REFRESH_TOKEN:
-        print("❌ No Refresh Token Found!")
+    tokens = get_saved_tokens()
+    if not tokens or "refresh_token" not in tokens:
+        print("❌ No Refresh Token Found in Firebase!")
         return None
+
+    refresh_token = tokens["refresh_token"]
 
     url = "https://api.upstox.com/login/authorization/token"
     payload = {
-        "client_id": UPSTOX_CLIENT_ID,
-        "client_secret": UPSTOX_CLIENT_SECRET,
+        "client_id": UPSTOX_API_KEY,
+        "client_secret": UPSTOX_API_SECRET,
         "grant_type": "refresh_token",
-        "refresh_token": UPSTOX_REFRESH_TOKEN,
+        "refresh_token": refresh_token,
         "redirect_uri": UPSTOX_REDIRECT_URI
     }
 
@@ -61,8 +59,6 @@ def refresh_access_token():
         new_refresh_token = data.get("refresh_token")
 
         if new_access_token and new_refresh_token:
-            UPSTOX_REFRESH_TOKEN = new_refresh_token  # ✅ Refresh Token Update कर दो
-            
             # 🔹 Firebase में Updated Tokens Save करो
             db.collection("upstox_tokens").document("auth").set({
                 "access_token": new_access_token,
