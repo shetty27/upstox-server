@@ -1,10 +1,14 @@
-# Stock Prediction Server (FastAPI + Upstox API)
-यह API **Upstox API से लाइव स्टॉक डेटा** लाकर **Machine Learning Prediction** के लिए डेटा प्रोवाइड करेगी।
+# Stock Prediction Server 🚀
 
-## Features:
-- **FastAPI Based Backend**
-- **Upstox API से Live Data Fetching**
-- **SQLite Database में स्टोर करना**
-- **Android App से Connect करने के लिए API**
+## 🔹 Project Overview
+यह Python FastAPI Server है, जो **Upstox API से Stock Price Data लाता है** और **Firebase Firestore में Store करता है**।  
+बाद में **Stock Prediction Model से Analyze किया जाएगा**।
 
-## How to Run:
+## 🔹 Features
+✅ FastAPI का उपयोग करके High-Speed Server  
+✅ Upstox से Stock Price Fetch  
+✅ Firebase Firestore में Realtime Data Store  
+✅ Render पर Deploy किया जा सकता है  
+
+## 🔹 Setup Instructions
+1. **GitHub से Clone करें:**  
