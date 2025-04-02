@@ -78,7 +78,7 @@ def get_stock_price(exchange: str, symbol: str):
         "Content-Type": "application/json"
     }
 
-    market_data_url = f"https://api.upstox.com/v2/market-quote/stocks/{exchange}/{symbol}"
+    market_data_url = f"https://api.upstox.com/v2/market-quote/quotes/{exchange}/{symbol}"
     response = requests.get(market_data_url, headers=headers)
 
     if response.status_code == 200:
