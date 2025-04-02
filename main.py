@@ -66,27 +66,25 @@ def get_access_token():
         print("✅ Access Token is still valid!")
         return access_token
 
-# Function to Fetch Market Data from Upstox
-def fetch_market_data():
+# API Endpoint to Fetch Stock Market Data
+@app.get("/stock/{exchange}/{symbol}")
+def get_stock_price(exchange: str, symbol: str):
     access_token = get_access_token()
     if not access_token:
-        print("❌ Error: Unable to fetch valid Access Token!")
-        return
+        return {"error": "Access Token Fetch Failed!"}
 
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
 
-    market_data_url = "https://api.upstox.com/v2/market-quote/stocks/NSE/RELIANCE"
+    market_data_url = f"https://api.upstox.com/v2/market-quote/stocks/{exchange}/{symbol}"
     response = requests.get(market_data_url, headers=headers)
 
     if response.status_code == 200:
-        data = response.json()
-        print("📊 Market Data:", json.dumps(data, indent=4))
+        return response.json()
     else:
-        print("❌ Error Fetching Market Data:", response.status_code, response.text)
-
+        return {"error": "Failed to fetch market data", "status_code": response.status_code}
 
 @app.get("/")
 def home():
@@ -99,6 +97,5 @@ def ping():
     
 # ✅ Server को Start करने के लिए Uvicorn का Use करो (Render के लिए ज़रूरी)
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
-    fetch_market_data()
