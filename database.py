@@ -1,18 +1,21 @@
-import sqlite3
+import firebase_admin
+from firebase_admin import credentials, firestore
+import os
+import json
 
-conn = sqlite3.connect("stocks.db", check_same_thread=False)
-cursor = conn.cursor()
+# Load Firebase Credentials from ENV
+firebase_creds = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS stock_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    symbol TEXT,
-    price REAL,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-)
-""")
-conn.commit()
+# Initialize Firebase App
+cred = credentials.Certificate(firebase_creds)
+firebase_admin.initialize_app(cred)
 
-def save_to_db(symbol, price):
-    cursor.execute("INSERT INTO stock_data (symbol, price) VALUES (?, ?)", (symbol, price))
-    conn.commit()
+db = firestore.client()
+
+def save_to_firebase(symbol, price):
+    doc_ref = db.collection("stock_data").document(symbol)
+    doc_ref.set({
+        "symbol": symbol,
+        "price": price,
+        "timestamp": firestore.SERVER_TIMESTAMP
+    })
