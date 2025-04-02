@@ -66,9 +66,9 @@ def get_access_token():
         print("✅ Access Token is still valid!")
         return access_token
 
-# API Endpoint to Fetch Stock Market Data
-@app.get("/stock/{exchange}/{symbol}")
-def get_stock_price(exchange: str, symbol: str):
+# 📌 **Market Quotes API**
+@app.get("/market-quotes/{exchange}/{symbol}")
+def get_market_quotes(exchange: str, symbol: str):
     access_token = get_access_token()
     if not access_token:
         return {"error": "Access Token Fetch Failed!"}
@@ -78,13 +78,18 @@ def get_stock_price(exchange: str, symbol: str):
         "Content-Type": "application/json"
     }
 
-    market_data_url = f"https://api.upstox.com/v2/market-quote/quotes/{exchange}/{symbol}"
-    response = requests.get(market_data_url, headers=headers)
+    market_quotes_url = "https://api.upstox.com/v2/market-quote/quotes"
+    payload = {
+        "instrument_key": f"{exchange}|{symbol}"
+    }
+
+    response = requests.post(market_quotes_url, headers=headers, json=payload)
 
     if response.status_code == 200:
-        return response.json()
+        data = response.json()
+        return {"symbol": symbol, "market_quotes": data}
     else:
-        return {"error": "Failed to fetch market data", "status_code": response.status_code}
+        return {"error": "Failed to fetch market quotes", "status_code": response.status_code, "message": response.text}
 
 @app.get("/")
 def home():
