@@ -1,3 +1,4 @@
+from fastapi import FastAPI
 import firebase_admin
 from firebase_admin import credentials, firestore
 import requests
