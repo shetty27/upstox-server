@@ -5,6 +5,8 @@ import json
 import os
 from datetime import datetime, timedelta
 
+app = FastAPI()
+
 # Firebase Initialization (Only Once)
 if not firebase_admin._apps:
     firebase_credentials = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
@@ -84,6 +86,8 @@ def fetch_market_data():
     else:
         print("❌ Error Fetching Market Data:", response.status_code, response.text)
 
-# Run the Market Data Fetching
+# ✅ Server को Start करने के लिए Uvicorn का Use करो (Render के लिए ज़रूरी)
 if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
     fetch_market_data()
