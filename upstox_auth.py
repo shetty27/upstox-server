@@ -1,61 +1,57 @@
 import os
+import json
 import requests
-import time
-from firebase_admin import firestore
+import firebase_admin
+from firebase_admin import credentials, firestore
 
-# Firestore Database Init
+# 🔹 Firebase Initialization
+firebase_creds = os.getenv("FIREBASE_CREDENTIALS")
+if not firebase_creds:
+    raise ValueError("Firebase credentials not found in environment variables.")
+
+firebase_creds_dict = json.loads(firebase_creds)
+if not firebase_admin._apps:
+    cred = credentials.Certificate(firebase_creds_dict)
+    firebase_admin.initialize_app(cred)
+
 db = firestore.client()
 
-# 🔹 Firestore से Token लाने का Function
+# 🔹 Upstox API Credentials
+UPSTOX_API_KEY = os.getenv("UPSTOX_API_KEY")
+UPSTOX_API_SECRET = os.getenv("UPSTOX_API_SECRET")
+UPSTOX_REDIRECT_URI = os.getenv("UPSTOX_REDIRECT_URI")
+
+FIRESTORE_DOC_PATH = "upstox/tokens"
+
+
 def get_saved_tokens():
-    doc_ref = db.collection("upstox_tokens").document("tokens")
-    doc = doc_ref.get()
+    """Retrieve stored access token from Firestore"""
+    doc = db.document(FIRESTORE_DOC_PATH).get()
     if doc.exists:
         return doc.to_dict()
     return None
 
-# 🔹 Firestore में Token Save करने का Function
-def save_tokens(access_token, expiry_time):
-    doc_ref = db.collection("upstox_tokens").document("tokens")
-    doc_ref.set({
-        "access_token": access_token,
-        "access_token_expiry": expiry_time,
-        "last_updated": int(time.time())
-    })
 
-# 🔹 Access Token Auto Refresh करने का Function
+def save_tokens(access_token):
+    """Save access token to Firestore"""
+    db.document(FIRESTORE_DOC_PATH).set({"access_token": access_token}, merge=True)
+
+
 def refresh_access_token():
-    tokens = get_saved_tokens()
-    if not tokens:
-        return None
-
-    access_token_expiry = tokens.get("access_token_expiry", 0)
+    """Refresh Upstox Access Token"""
+    saved_tokens = get_saved_tokens()
+    if not saved_tokens or "access_token" not in saved_tokens:
+        raise ValueError("No valid access token found in Firestore.")
     
-    # 🔥 अगर Token Expire हो गया है, तो नया Generate करो
-    if int(time.time()) >= access_token_expiry:
-        print("🔄 Access Token Expired! Generating New Token...")
-
-        url = "https://api.upstox.com/v2/login/authorization/token"
-        payload = {
-            "client_id": os.getenv("UPSTOX_API_KEY"),
-            "client_secret": os.getenv("UPSTOX_API_SECRET"),
-            "grant_type": "password",
-            "username": os.getenv("UPSTOX_USERNAME"),
-            "password": os.getenv("UPSTOX_PASSWORD")
-        }
-        
-        response = requests.post(url, data=payload)
-        
-        if response.status_code == 200:
-            new_token_data = response.json()
-            access_token = new_token_data.get("access_token")
-            expires_in = new_token_data.get("expires_in", 3600)
-            expiry_time = int(time.time()) + expires_in
-            
-            save_tokens(access_token, expiry_time)
-            return access_token
-        else:
-            print("❌ Failed to Refresh Token:", response.json())
-            return None
+    access_token = saved_tokens["access_token"]
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get("https://api.upstox.com/v2/user/profile", headers=headers)
+    
+    if response.status_code == 401:
+        raise ValueError("Access Token Expired! Manual re-authentication required.")
+    elif response.status_code == 200:
+        print("✅ Access Token is still valid.")
+        return access_token
     else:
-        return tokens.get("access_token")
+        print("⚠️ Unknown response from Upstox API", response.json())
+        return None
