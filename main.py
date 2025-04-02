@@ -66,9 +66,9 @@ def get_access_token():
         print("✅ Access Token is still valid!")
         return access_token
 
-# 📌 **Market Quotes API**
-@app.get("/market-quotes/{exchange}/{symbol}")
-def get_market_quotes(exchange: str, symbol: str):
+# Fetch Last Traded Price (LTP) from Upstox
+@app.get("/ltp/{instrument_key}")
+def get_ltp(instrument_key: str):
     access_token = get_access_token()
     if not access_token:
         return {"error": "Access Token Fetch Failed!"}
@@ -78,28 +78,47 @@ def get_market_quotes(exchange: str, symbol: str):
         "Content-Type": "application/json"
     }
 
-    market_quotes_url = "https://api.upstox.com/v2/market-quote/quotes"
-    payload = {
-        "instrument_key": f"{exchange}|{symbol}"
-    }
+    url = "https://api.upstox.com/v2/market-quote/ltp"
+    payload = {"instrument_key": [instrument_key]}
 
-    response = requests.post(market_quotes_url, headers=headers, json=payload)
+    response = requests.post(url, headers=headers, json=payload)
 
     if response.status_code == 200:
-        data = response.json()
-        return {"symbol": symbol, "market_quotes": data}
+        return response.json()
+    else:
+        return {"error": "Failed to fetch LTP", "status_code": response.status_code, "message": response.text}
+
+# Fetch Full Market Quotes from Upstox
+@app.get("/quotes/{instrument_key}")
+def get_quotes(instrument_key: str):
+    access_token = get_access_token()
+    if not access_token:
+        return {"error": "Access Token Fetch Failed!"}
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    url = "https://api.upstox.com/v2/market-quote/quotes"
+    payload = {"instrument_key": [instrument_key]}
+
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        return response.json()
     else:
         return {"error": "Failed to fetch market quotes", "status_code": response.status_code, "message": response.text}
 
 @app.get("/")
 def home():
     return {"message": "Server is running!"}
-    
+
 @app.get("/ping")
 @app.head("/ping")
 def ping():
     return {"status": "OK"}
-    
+
 # ✅ Server को Start करने के लिए Uvicorn का Use करो (Render के लिए ज़रूरी)
 if __name__ == "__main__":
     import uvicorn
