@@ -91,8 +91,8 @@ def fetch_market_data():
 @app.get("/")
 def home():
     return {"message": "Server is running!"}
-
-@app.get("/ping")
+    
+@app.get("/ping", methods=["GET", "HEAD"])
 def ping():
     return {"status": "OK"}
 
