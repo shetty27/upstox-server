@@ -1,0 +1,1 @@
+UPSTOX_API_KEY = "227c4ebc-21a6-4e0b-8dc6-6c4a7d74fea1"
