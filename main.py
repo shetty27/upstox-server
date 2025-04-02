@@ -87,6 +87,15 @@ def fetch_market_data():
     else:
         print("❌ Error Fetching Market Data:", response.status_code, response.text)
 
+
+@app.get("/")
+def home():
+    return {"message": "Server is running!"}
+
+@app.get("/ping")
+def ping():
+    return {"status": "OK"}
+
 # ✅ Server को Start करने के लिए Uvicorn का Use करो (Render के लिए ज़रूरी)
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
