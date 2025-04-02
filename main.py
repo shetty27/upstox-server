@@ -1,39 +1,89 @@
-from fastapi import FastAPI
+import firebase_admin
+from firebase_admin import credentials, firestore
 import requests
-from upstox_auth import refresh_access_token, get_saved_tokens
-from firebase_config import save_to_firebase
-import uvicorn
+import json
+import os
+from datetime import datetime, timedelta
 
-app = FastAPI()
+# Firebase Initialization (Only Once)
+if not firebase_admin._apps:
+    firebase_credentials = json.loads(os.getenv("FIREBASE_CREDENTIALS"))
+    cred = credentials.Certificate(firebase_credentials)
+    firebase_admin.initialize_app(cred)
 
-# 🔹 Upstox API से Data Fetch करने वाला Function
-def fetch_stock_data(symbol):
-    access_token = refresh_access_token()
+db = firestore.client()
+
+# Upstox API Credentials from Environment Variables
+UPSTOX_API_KEY = os.getenv("UPSTOX_API_KEY")
+UPSTOX_API_SECRET = os.getenv("UPSTOX_API_SECRET")
+
+# Function to Get & Refresh Access Token
+def get_access_token():
+    doc_ref = db.collection("tokens").document("upstox")
+    token_data = doc_ref.get().to_dict()
+
+    if not token_data:
+        print("❌ Error: No token data found in Firestore!")
+        return None
+
+    access_token = token_data.get("access_token")
+    last_updated = token_data.get("last_updated")
+
+    # Convert last_updated to datetime
+    last_updated_dt = datetime.strptime(last_updated, "%Y-%m-%dT%H:%M:%S")
+
+    # Check if Token Expired (Validity: 12 Hours)
+    if datetime.utcnow() - last_updated_dt > timedelta(hours=12):
+        print("🔄 Access Token Expired! Getting a new one...")
+
+        auth_url = "https://api.upstox.com/v2/login/authorization/token"
+        payload = {
+            "apiKey": UPSTOX_API_KEY,
+            "apiSecret": UPSTOX_API_SECRET
+        }
+
+        response = requests.post(auth_url, json=payload)
+        new_token_data = response.json()
+
+        if "access_token" in new_token_data:
+            new_access_token = new_token_data["access_token"]
+
+            # Save New Token in Firestore
+            doc_ref.set({
+                "access_token": new_access_token,
+                "last_updated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+            })
+
+            print("✅ New Access Token Saved!")
+            return new_access_token
+        else:
+            print("❌ Error: Failed to refresh token!")
+            return None
+    else:
+        print("✅ Access Token is still valid!")
+        return access_token
+
+# Function to Fetch Market Data from Upstox
+def fetch_market_data():
+    access_token = get_access_token()
     if not access_token:
-        return {"error": "Failed to get access token"}
+        print("❌ Error: Unable to fetch valid Access Token!")
+        return
 
-    url = f"https://api.upstox.com/market-quote/{symbol}"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    
-    response = requests.get(url, headers=headers)
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+    market_data_url = "https://api.upstox.com/v2/market-quote/stocks/NSE/RELIANCE"
+    response = requests.get(market_data_url, headers=headers)
 
     if response.status_code == 200:
         data = response.json()
-        save_to_firebase(symbol, data["last_price"])
-        return {"symbol": symbol, "price": data["last_price"]}
-    
-    return {"error": "Failed to fetch data"}
+        print("📊 Market Data:", json.dumps(data, indent=4))
+    else:
+        print("❌ Error Fetching Market Data:", response.status_code, response.text)
 
-# 🔹 API Routes
-@app.get("/")
-@app.head("/")
-def home():
-    return {"message": "Stock Prediction API is Running with Upstox!"}
-
-@app.get("/fetch/{symbol}")
-def get_stock(symbol: str):
-    return fetch_stock_data(symbol)
-
-# ✅ Server को Start करने के लिए Uvicorn का Use करो
+# Run the Market Data Fetching
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    fetch_market_data()
