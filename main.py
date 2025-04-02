@@ -36,6 +36,13 @@ def fetch_stock_data(symbol):
     
     return {"error": "Failed to fetch data"}
 
+# ✅ 🔹 Auth Code Callback Handle करने के लिए Route
+@app.get("/callback")
+def get_auth_code(code: str = None, state: str = None):
+    if not code:
+        return {"error": "Auth Code Not Found"}
+    return {"auth_code": code, "state": state}
+
 # 🔹 API Routes
 @app.get("/")
 def home():
