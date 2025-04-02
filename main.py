@@ -3,6 +3,7 @@ import requests
 import os
 from upstox_auth import refresh_access_token, get_saved_tokens
 from firebase_config import save_to_firebase
+import uvicorn  # ✅ Uvicorn Import करो
 
 app = FastAPI()
 
@@ -43,3 +44,7 @@ def home():
 @app.get("/fetch/{symbol}")
 def get_stock(symbol: str):
     return fetch_stock_data(symbol)
+
+# ✅ Server को Start करने के लिए Uvicorn का Use करो (Render के लिए ज़रूरी)
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
