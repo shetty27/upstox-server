@@ -19,6 +19,7 @@ db = firestore.client()
 # Upstox API Credentials from Environment Variables
 UPSTOX_API_KEY = os.getenv("UPSTOX_API_KEY")
 UPSTOX_API_SECRET = os.getenv("UPSTOX_API_SECRET")
+REDIRECT_URI = "YOUR_REDIRECT_URL"  # 🔹 Upstox में सेट किया हुआ Redirect URL डालो
 
 # Function to Get & Refresh Access Token
 def get_access_token():
@@ -30,6 +31,7 @@ def get_access_token():
         return None
 
     access_token = token_data.get("access_token")
+    auth_code = token_data.get("authorization_code")  # ✅ Authorization Code Firebase से लो
     last_updated = token_data.get("last_updated")
 
     # Convert last_updated to datetime
@@ -41,19 +43,25 @@ def get_access_token():
 
         auth_url = "https://api.upstox.com/v2/login/authorization/token"
         payload = {
+            "code": auth_code,
             "apiKey": UPSTOX_API_KEY,
-            "apiSecret": UPSTOX_API_SECRET
+            "apiSecret": UPSTOX_API_SECRET,
+            "grant_type": "authorization_code",
+            "redirect_uri": REDIRECT_URI
         }
 
-        response = requests.post(auth_url, json=payload)
-        new_token_data = response.json()
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(auth_url, json=payload, headers=headers)
 
+        new_token_data = response.json()
+        
         if "access_token" in new_token_data:
             new_access_token = new_token_data["access_token"]
 
             # Save New Token in Firestore
             doc_ref.set({
                 "access_token": new_access_token,
+                "authorization_code": auth_code,  # ✅ Authorization Code फिर से Save करो
                 "last_updated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
             })
 
@@ -61,6 +69,7 @@ def get_access_token():
             return new_access_token
         else:
             print("❌ Error: Failed to refresh token!")
+            print("🔍 API Response:", new_token_data)  # Debugging के लिए
             return None
     else:
         print("✅ Access Token is still valid!")
