@@ -40,7 +40,7 @@ async def get_ltp(request: Request):
 
     headers = {
         "Authorization": f"Bearer {access_token}",
-        
+        "Accept': 'application/json",
         "Content-Type": "application/json"
     }
 
