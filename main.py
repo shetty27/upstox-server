@@ -1,9 +1,9 @@
+from fastapi import FastAPI
 import requests
-import json
 import firebase_admin
 from firebase_admin import credentials, firestore
-from fastapi import FastAPI
 import os
+import json
 
 # Firestore Database Setup
 if not firebase_admin._apps:
@@ -13,8 +13,10 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# FastAPI Setup
 app = FastAPI()
+
+# Upstox API Details
+UPSTOX_API_BASE = "https://api.upstox.com/v2/market-quote/ltp"
 
 # ✅ Firestore से Access Token लेना
 def get_access_token():
@@ -25,12 +27,12 @@ def get_access_token():
     else:
         return None
 
-# ✅ LTP Fetch API
+# ✅ LTP API (POST Request with JSON Payload)
 @app.get("/ltp/{instrument_key}")
 def get_ltp(instrument_key: str):
     access_token = get_access_token()
     if not access_token:
-        return {"error": "Access Token not found in Firestore!"}
+        return {"error": "Access Token missing!"}
 
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -38,46 +40,15 @@ def get_ltp(instrument_key: str):
         "Content-Type": "application/json"
     }
 
-    url = "https://api.upstox.com/v2/market-quote/ltp"
-    payload = {"instrument_keys": [instrument_key]}
-    
-    response = requests.post(url, headers=headers, json=payload)
+    url = UPSTOX_API_BASE
+    payload = {"instrument_keys": [instrument_key]}  # ✅ सही Payload
+
+    response = requests.post(url, headers=headers, json=payload)  # ✅ POST Request
     
     if response.status_code == 200:
         return response.json()
     else:
-        return {
-            "error": "Failed to fetch LTP",
-            "status_code": response.status_code,
-            "message": response.text
-        }
-
-# ✅ Full Quotes Fetch API
-@app.get("/quote/{instrument_key}")
-def get_quote(instrument_key: str):
-    access_token = get_access_token()
-    if not access_token:
-        return {"error": "Access Token not found in Firestore!"}
-
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Accept": "application/json",
-        "Content-Type": "application/json"
-    }
-
-    url = "https://api.upstox.com/v2/market-quote/full"
-    payload = {"instrument_keys": [instrument_key]}
-    
-    response = requests.post(url, headers=headers, json=payload)
-    
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {
-            "error": "Failed to fetch Quotes",
-            "status_code": response.status_code,
-            "message": response.text
-        }
+        return {"error": "Failed to fetch LTP", "status_code": response.status_code, "message": response.text}
 
 @app.get("/")
 def home():
