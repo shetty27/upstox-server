@@ -25,7 +25,7 @@ def get_access_token():
     else:
         return None
 
-# ✅ Stock Price Fetch API Endpoint
+# ✅ LTP Fetch API
 @app.get("/ltp/{instrument_key}")
 def get_ltp(instrument_key: str):
     access_token = get_access_token()
@@ -34,11 +34,12 @@ def get_ltp(instrument_key: str):
 
     headers = {
         "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
         "Content-Type": "application/json"
     }
 
-    url = "https://api.upstox.com/v2/market-quote"  # ✅ Fixed API Endpoint
-    payload = {"instrument_keys": [instrument_key]}  # ✅ Correct Payload Format
+    url = "https://api.upstox.com/v2/market-quote/ltp"
+    payload = {"instrument_keys": [instrument_key]}
     
     response = requests.post(url, headers=headers, json=payload)
     
@@ -47,6 +48,33 @@ def get_ltp(instrument_key: str):
     else:
         return {
             "error": "Failed to fetch LTP",
+            "status_code": response.status_code,
+            "message": response.text
+        }
+
+# ✅ Full Quotes Fetch API
+@app.get("/quote/{instrument_key}")
+def get_quote(instrument_key: str):
+    access_token = get_access_token()
+    if not access_token:
+        return {"error": "Access Token not found in Firestore!"}
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+
+    url = "https://api.upstox.com/v2/market-quote/full"
+    payload = {"instrument_keys": [instrument_key]}
+    
+    response = requests.post(url, headers=headers, json=payload)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return {
+            "error": "Failed to fetch Quotes",
             "status_code": response.status_code,
             "message": response.text
         }
