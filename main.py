@@ -1,5 +1,5 @@
 import requests
-import json  # ✅ JSON Module Import किया गया
+import json
 import firebase_admin
 from firebase_admin import credentials, firestore
 from fastapi import FastAPI
@@ -15,9 +15,6 @@ db = firestore.client()
 
 # FastAPI Setup
 app = FastAPI()
-
-# Upstox API Base URL
-UPSTOX_API_BASE = "https://api.upstox.com/v2/market-quote/ltp"
 
 # ✅ Firestore से Access Token लेना
 def get_access_token():
@@ -40,15 +37,19 @@ def get_ltp(instrument_key: str):
         "Content-Type": "application/json"
     }
 
-    url = UPSTOX_API_BASE
-    payload = {"instrument_keys": [instrument_key]}
+    url = "https://api.upstox.com/v2/market-quote"  # ✅ Fixed API Endpoint
+    payload = {"instrument_keys": [instrument_key]}  # ✅ Correct Payload Format
     
     response = requests.post(url, headers=headers, json=payload)
     
     if response.status_code == 200:
         return response.json()
     else:
-        return {"error": "Failed to fetch LTP", "status_code": response.status_code, "message": response.text}
+        return {
+            "error": "Failed to fetch LTP",
+            "status_code": response.status_code,
+            "message": response.text
+        }
 
 @app.get("/")
 def home():
