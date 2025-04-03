@@ -1,4 +1,5 @@
 import requests
+import json  # ✅ JSON Module Import किया गया
 import firebase_admin
 from firebase_admin import credentials, firestore
 from fastapi import FastAPI
